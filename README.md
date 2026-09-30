@@ -208,7 +208,7 @@ The **demo database** is a small shop: `customers` (40), `products` (15), `order
 python -m unittest -v
 ```
 
-28 tests cover sanitizer bypass attempts, each read-only layer on its own, the timeout, the row cap, Markdown escaping, awkward file names and identifiers, and a full stdio round trip through an MCP client. CI runs them on Linux, Windows, and macOS (Apple Silicon and Intel) with Python 3.10 to 3.13.
+29 tests cover sanitizer bypass attempts, each read-only layer on its own, the timeout, the row cap, Markdown escaping, awkward file names and identifiers, and a full stdio round trip through an MCP client. CI runs them on Linux, Windows, and macOS (Apple Silicon and Intel) with Python 3.10 to 3.13.
 
 ## Contributing
 

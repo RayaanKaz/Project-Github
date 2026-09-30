@@ -586,7 +586,9 @@ def execute_query(sql: str) -> str:
             ) from exc
         if "not authorized" in message:
             raise ToolError("Blocked: this server is read-only and the query tried a "
-                            "disallowed operation.") from exc
+                            "disallowed operation. For schema details, use inspect_schema.") from exc
+        if "no such table: pragma_" in message:  # Pragma functions are refused on SQLite < 3.42.
+            message += ". For schema details, use inspect_schema"
         raise ToolError(f"SQLite error: {message}") from exc
     finally:
         conn.close()

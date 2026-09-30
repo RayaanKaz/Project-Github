@@ -8,6 +8,7 @@ import sqlite3
 import sys
 import tempfile
 import unittest
+from contextlib import closing
 from pathlib import Path
 from unittest import mock
 
@@ -193,15 +194,25 @@ class ExecuteQueryTests(DatabaseTestCase):
         self.assertIn("Columns: id, name", out)
         self.assertIn("0 rows returned", out)
 
-    def test_cte_join_aggregate_and_pragma_function(self) -> None:
+    def test_cte_join_and_aggregate(self) -> None:
         out = server.execute_query(
             "WITH spend AS (SELECT o.customer_id, SUM(oi.quantity * oi.unit_price) AS total "
             "FROM orders o JOIN order_items oi ON oi.order_id = o.id GROUP BY 1) "
             "SELECT COUNT(*) FROM spend"
         )
         self.assertIn("1 row(s) returned", out)
-        out = server.execute_query("SELECT name FROM pragma_table_info('orders')")
-        self.assertIn("customer_id", out)
+
+    def test_pragma_function(self) -> None:
+        try:
+            out = server.execute_query("SELECT name FROM pragma_table_info('orders')")
+        except ToolError as exc:
+            # SQLite < 3.42 reports a pragma function's first use as a write to
+            # sqlite_master, which the authorizer refuses (surfacing as "not
+            # authorized" or "no such table"): a safe failure.
+            self.assertLess(sqlite3.sqlite_version_info, (3, 42, 0))
+            self.assertIn("inspect_schema", str(exc))
+        else:
+            self.assertIn("customer_id", out)
 
     def test_write_is_blocked_with_clear_message(self) -> None:
         before = _digest(self.db)
@@ -212,8 +223,10 @@ class ExecuteQueryTests(DatabaseTestCase):
         self.assertEqual(_digest(self.db), before)
 
     def test_disallowed_pragma_function(self) -> None:
-        with self.assertRaisesRegex(ToolError, "read-only"):
+        with self.assertRaises(ToolError) as ctx:
             server.execute_query("SELECT * FROM pragma_database_list")
+        if sqlite3.sqlite_version_info >= (3, 42, 0):
+            self.assertIn("read-only", str(ctx.exception))
 
     def test_sql_error_is_reported(self) -> None:
         with self.assertRaisesRegex(ToolError, "no such table"):
@@ -294,7 +307,10 @@ class ConfigurationTests(unittest.TestCase):
             server._build_demo_db(a)
             server._build_demo_db(b)
             query = "SELECT group_concat(id || status) FROM orders"
-            results = [sqlite3.connect(p).execute(query).fetchone() for p in (a, b)]
+            results = []
+            for path in (a, b):
+                with closing(sqlite3.connect(path)) as conn:  # Windows can't delete open files.
+                    results.append(conn.execute(query).fetchone())
             self.assertEqual(results[0], results[1])
 
 
