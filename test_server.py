@@ -266,7 +266,7 @@ class InspectSchemaTests(DatabaseTestCase):
         self.assertNotIn("## customers", out)
 
     def test_awkward_identifiers_and_paths(self) -> None:
-        odd = Path(self._tmp.name) / "my data #1?.db"
+        odd = Path(self._tmp.name) / "my data #1 %41.db"  # %41 must not be decoded to "A"
         conn = sqlite3.connect(odd)
         conn.execute('CREATE TABLE "weird ""name"" | t" ("select" TEXT, "a|b" INTEGER)')
         conn.execute('INSERT INTO "weird ""name"" | t" VALUES (\'v\', 1)')

@@ -1,3 +1,10 @@
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#     "mcp[cli]>=2.2,<3",
+#     "cryptography<49; sys_platform == 'darwin' and platform_machine == 'x86_64'",
+# ]
+# ///
 """mcp-sqlite-insights: a read-only SQLite gateway for Claude, built on the MCP Python SDK.
 
 Tools
